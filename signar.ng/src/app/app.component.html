@@ -1,0 +1,34 @@
+<h1>Chat avec Signal R</h1>
+
+<h2>Mon email</h2>
+<input type="email" [(ngModel)]="email" name="email">
+<br>
+<button (click)="registerandconnect()">Enregistrer et connecter</button>
+<br>
+<button (click)="test()">Tester la connexion au serveur</button>
+<br>
+<button (click)="connecttohub()">Connexion au Hub Signal R</button>
+<br>
+<button (click)="joinchatroom()">Joindre la Chat room</button>
+
+<div style="display: flex;">
+  
+  <div style="background-color: azure; width: 500px;">
+    <h2>Utilisateurs connectés</h2>
+    <span *ngFor="let user of userlist">
+      <button (click)="startprivatechat(user)">discuter</button>
+      <h4 style="display: inline;">{{user}}</h4>
+    </span>
+    <br>
+  </div>
+
+  <div style="background-color: cadetblue; width: 500px;">
+    <h2>Conversation</h2>
+    <p>Nouveau message</p>
+    <form (submit)="sendMessage()">
+      <input type="text" [(ngModel)]="message" name="message">
+      <button>Envoyer</button>
+    </form>
+    <h6 *ngFor="let message of chat?.messages">{{message}}</h6>
+  </div>
+</div>

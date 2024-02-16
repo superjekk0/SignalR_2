@@ -16,7 +16,7 @@ export class AppComponent {
   title = 'signar.ng';
   baseUrl = "https://localhost:7060/api/";
   accountBaseUrl = this.baseUrl + "Account/";
-  testBaseUrl = this.baseUrl + "test/";
+  testBaseUrl = this.baseUrl + "Test/";
   email="autre2@test.com";
   message: string = "test";
 
@@ -27,18 +27,27 @@ export class AppComponent {
 
   constructor(public http: HttpClient){}
 
-  async registerandconnect(){
+  async registerAndLogin(){
     let registerData = {
       email : this.email,
       password : "Passw0rd!",
       passwordConfirm : "Passw0rd!",
     }
-    let result = await lastValueFrom(this.http.post<any>(this.accountBaseUrl + 'Register', registerData, { withCredentials:true }));
+    let result = await lastValueFrom(this.http.post<any>(this.accountBaseUrl + 'Register', registerData));
+    console.log(result);
+  }
+
+  async login(){
+    let loginData = {
+      username : this.email,
+      password : "Passw0rd!"
+    }
+    let result = await lastValueFrom(this.http.post<any>(this.accountBaseUrl + 'Login', loginData));
     console.log(result);
   }
 
   async test() {
-    let result = await lastValueFrom(this.http.get<any>(this.testBaseUrl, { withCredentials:true }));
+    let result = await lastValueFrom(this.http.get<any>(this.testBaseUrl));
     console.log(result);
   }
 

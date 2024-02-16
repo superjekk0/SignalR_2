@@ -8,11 +8,15 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlite(connectionString));
+{ 
+    options.UseSqlServer(connectionString);
+});
+// Permet d'obtenir des erreurs de BD plus claires et même d'appliquer des migrations manquantes
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
 builder.Services.AddDefaultIdentity<IdentityUser>()
     .AddEntityFrameworkStores<ApplicationDbContext>();
+
 builder.Services.AddControllersWithViews();
 
 builder.Services.AddCors(options =>
@@ -24,15 +28,13 @@ builder.Services.AddCors(options =>
         .AllowCredentials());
 });
 
-// TODO Ajouter SignalR
-builder.Services.AddSignalR();
-
 builder.Services.ConfigureApplicationCookie(options =>
 {
-    options.Cookie.HttpOnly = false;
-    options.Cookie.SecurePolicy = CookieSecurePolicy.None;
     options.Cookie.SameSite = SameSiteMode.None;
 });
+
+// TODO Ajouter SignalR
+builder.Services.AddSignalR();
 
 var app = builder.Build();
 
@@ -62,7 +64,7 @@ app.MapControllerRoute(
     pattern: "{controller=Home}/{action=Index}/{id?}");
 app.MapRazorPages();
 
-// TODO utiliser SignalR et configuer l'url à utiliser pour le Hub (contrôleur de WebSockets)
+// TODO utiliser SignalR et configuer l'url à utiliser pour le Hub
 app.MapHub<ChatHub>("/chat");
 
 app.Run();

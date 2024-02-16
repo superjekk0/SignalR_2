@@ -17,12 +17,17 @@ export class AppComponent {
   baseUrl = "https://localhost:7060/api/";
   accountBaseUrl = this.baseUrl + "Account/";
   testBaseUrl = this.baseUrl + "Test/";
-  email="autre2@test.com";
+  email="test1@test.com";
   message: string = "test";
 
-  userlist:string[] = [];
-  chat?: PrivateChat;
- 
+  messages: string[] = [];
+
+  usersList:string[] = [];
+  channelsList:Channel[] = [];
+
+  selectedChannelId:number = 0;
+  selectedUser:string | null = null;
+  
   private hubConnection?: signalR.HubConnection
 
   constructor(public http: HttpClient){}
@@ -46,12 +51,16 @@ export class AppComponent {
     console.log(result);
   }
 
+  async logout(){
+    await lastValueFrom(this.http.get<any>(this.accountBaseUrl + 'Logout'));
+  }
+
   async test() {
     let result = await lastValueFrom(this.http.get<any>(this.testBaseUrl));
     console.log(result);
   }
 
-  connecttohub() {
+  connectToHub() {
     // TODO On doit commencer par créer la connexion vers le Hub
     this.hubConnection = new signalR.HubConnectionBuilder()
                               .withUrl('https://localhost:7060/chat')
@@ -62,38 +71,45 @@ export class AppComponent {
       .then(() => {
         console.log('La connexion est live!');
         // TODO Une fois connectée, on peut commencer à écouter pour les évènements qui vont déclencher des callbacks
-        this.hubConnection!.on('UserList', (data) => {
+        this.hubConnection!.on('UsersList', (data) => {
           console.log(data);
-          this.userlist = data;
+          this.usersList = data;
+        })
+
+        this.hubConnection!.on('ChannelsList', (data) => {
+          console.log(data);
+          this.channelsList = data;
         })
     
-        this.hubConnection!.on('NewMessage', (data) => {
-          console.log(data);
-          this.chat = data;
+        this.hubConnection!.on('NewMessage', (message) => {
+          console.log(message);
+          this.messages.push(message);
         })
       })
       .catch(err => console.log('Error while starting connection: ' + err))
   }
 
-  joinchatroom() {
+  joinChatRoom() {
     // TODO On appel la fonction JoinChatRoom du Hub 
     this.hubConnection!.invoke('JoinChatRoom')
   }
 
-  startprivatechat(user: string) {
+  startPrivateChat(user: string) {
     this.hubConnection!.invoke('StartPrivateChat', user)
   }
 
+  joinChannel(channelId: number) {
+    this.hubConnection!.invoke('JoinChannel', this.selectedChannelId, channelId);
+    this.selectedChannelId = channelId;
+  }
+
   sendMessage() {
-    this.hubConnection!.invoke('NewMessage', this.message ,this.chat)
+    this.hubConnection!.invoke('SendMessage', this.message ,this.selectedChannelId, this.selectedUser);
   }
 }
 
-export class PrivateChat
-{
-  constructor(
-    public id:number,
-    public name: string,
-    public messages: string[]
-  ) { }
+interface Channel{
+  id:number;
+  title:string;
 }
+

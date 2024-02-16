@@ -7,30 +7,42 @@
 <br>
 <button (click)="login()">S'authentifier</button>
 <br>
+<button (click)="logout()">Logout</button>
+<br>
 <button (click)="test()">Tester la connexion au serveur</button>
 <br>
-<button (click)="connecttohub()">Connexion au Hub Signal R</button>
+<button (click)="connectToHub()">Connexion au Hub Signal R</button>
 <br>
-<button (click)="joinchatroom()">Joindre la Chat room</button>
+<button (click)="joinChatRoom()">Joindre la Chat room</button>
 
 <div style="display: flex;">
   
-  <div style="background-color: azure; width: 500px;">
+  <div style="background-color: azure; width: 400px;">
     <h2>Utilisateurs connectés</h2>
-    <span *ngFor="let user of userlist">
-      <button (click)="startprivatechat(user)">discuter</button>
+    <span *ngFor="let user of usersList">
+      <button (click)="startPrivateChat(user)">discuter</button>
       <h4 style="display: inline;">{{user}}</h4>
     </span>
     <br>
   </div>
 
-  <div style="background-color: cadetblue; width: 500px;">
+  <div style="background-color: azure; width: 400px;">
+    <h2>Channels</h2>
+    <span *ngFor="let channel of channelsList">
+      <button (click)="joinChannel(channel.id)">Join</button>
+      <h4 style="display: inline;">{{channel.title}}</h4>
+    </span>
+    <br>
+  </div>
+
+  <div style="background-color: cadetblue; width: 400px;">
     <h2>Conversation</h2>
+
     <p>Nouveau message</p>
     <form (submit)="sendMessage()">
       <input type="text" [(ngModel)]="message" name="message">
       <button>Envoyer</button>
     </form>
-    <h6 *ngFor="let message of chat?.messages">{{message}}</h6>
+    <h6 *ngFor="let message of messages">{{message}}</h6>
   </div>
 </div>

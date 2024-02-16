@@ -1,9 +1,9 @@
-﻿using System;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using signalr.backend.Data;
+using signalr.backend.Models;
 
 namespace signalr.backend.Hubs
 {
@@ -49,13 +49,21 @@ namespace signalr.backend.Hubs
             _context = context;
         }
 
-        // TODO Aurait très bien pu être fait sur le OnConnect
         public async Task JoinChatRoom()
         {
             // TODO Context.ConnectionId est l'identifiant de la connection entre le web socket et l'utilisateur
             // TODO Ce sera utile pour créer des groups
             UserHandler.UserConnections.Add(CurentUser.Email!, Context.ConnectionId);
             await UserList();
+            await Clients.Caller.SendAsync("ChannelsList", _context.Channel.ToList());
+        }
+
+        public async Task CreateChannel(string title)
+        {
+            _context.Channel.Add(new Channel { Title = title });
+            await _context.SaveChangesAsync();
+
+            await Clients.Caller.SendAsync("ChannelsList", await _context.Channel.ToListAsync());
         }
 
         public async Task UserList()
@@ -63,41 +71,57 @@ namespace signalr.backend.Hubs
             // TODO On envoie un évènement de type UserList à tous les Utilisateurs
             // TODO On peut envoyer en paramètre tous les types que l'om veut,
             // ici serHandler.UserConnections.Keys correspond à la liste de tous les emails des utilisateurs connectés
-            await Clients.All.SendAsync("UserList", UserHandler.UserConnections.Keys);
+            await Clients.All.SendAsync("UsersList", UserHandler.UserConnections.Keys);
         }
 
-        public async Task StartPrivateChat(string userToChatWith)
+        public async Task JoinChannel(int oldChannelId, int newChannelId)
         {
-            string? userToChatWithConnectionId = UserHandler.UserConnections[userToChatWith];
+            string userTag = "[User: " + CurentUser.Email! + "]";
 
-            string groupName = "Chat" + userToChatWith + CurentUser.Email;
+            if(oldChannelId > 0)
+            {
+                string oldGroupName = "Channel" + oldChannelId;
+                Channel channel = _context.Channel.Find(oldChannelId);
+                string message = userTag + "is leaving: " + channel.Title;
+                await Clients.Group(oldGroupName).SendAsync("NewMessage", message);
+                await Groups.RemoveFromGroupAsync(Context.ConnectionId, oldGroupName);
+            }
+            
+            if(newChannelId > 0)
+            {
+                string newGroupName = "Channel" + newChannelId;
+                await Groups.AddToGroupAsync(Context.ConnectionId, newGroupName);
 
-            // TODO On crée un group en 2 utilisateurs connectés
-            await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
-            await Groups.AddToGroupAsync(userToChatWithConnectionId, groupName);
-
-            PrivateChat privateChat = new PrivateChat();
-            privateChat.Name = groupName;
-            privateChat.Messages.Add("La conversation débute");
-
-            // TODO On envoie la nouvelle conversation au 2 utilisateurs du groupe
-            await Clients.Group(groupName).SendAsync("NewMessage", privateChat);
+                Channel channel = _context.Channel.Find(newChannelId);
+                string message = userTag + "has joined: " + channel.Title;
+                await Clients.Group(newGroupName).SendAsync("NewMessage", message);
+            }
         }
 
-        public async Task NewMessage(string newMessage, PrivateChat privateChat)
+        public async Task SendMessage(string message, int channelId, string userId)
         {
-            // TODO On met à jours la conversation, puis on la renvoit au 2 utilisateurs du groupe
-            privateChat.Messages.Add(CurentUser.Email + " | " + newMessage);
-            await Clients.Group(privateChat.Name).SendAsync("NewMessage", privateChat);
+            if (userId != null)
+            {
+                string messageWithTag = "[From User: " + CurentUser.Email! + "] " + message;
+                await Clients.User(userId).SendAsync("NewMessage", messageWithTag);
+            }
+            else if (channelId != 0)
+            {
+                string groupName = "Channel" + channelId;
+                await Clients.Group(groupName).SendAsync("NewMessage", "[Channel] " + message);
+            }
+            else
+            {
+                await Clients.All.SendAsync("NewMessage", "[General] " + message);
+            }
         }
 
-        public override Task OnDisconnectedAsync(Exception exception)
+        public async override Task OnDisconnectedAsync(Exception exception)
         {
             // TODO Lors de la fermeture de la connexion, on met à jour notre dictionnary d'utilisateurs connectés
             KeyValuePair<string,string> entrie = UserHandler.UserConnections.SingleOrDefault(uc=>uc.Value == Context.ConnectionId);
             UserHandler.UserConnections.Remove(entrie.Key);
-            UserList();
-            return base.OnDisconnectedAsync(exception);
+            await UserList();
         }
     }
 }

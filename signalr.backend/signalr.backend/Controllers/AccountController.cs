@@ -25,7 +25,7 @@ namespace signalr.backend.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult> Register(RegisterDTO register)
+        public async Task<ActionResult<LoginResultDTO>> Register(RegisterDTO register)
         {
             if (register.Password != register.PasswordConfirm)
             {
@@ -43,32 +43,32 @@ namespace signalr.backend.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError,
                     new { Message = "La création de l'utilisateur a échoué." });
             }
-            return await Login(new LoginDTO() { Password = register.Password, Username = register.Email });
+            return await Login(new LoginDTO() { Password = register.Password, Email = register.Email });
         }
 
         [HttpPost]
-        public async Task<ActionResult> Login(LoginDTO login)
+        public async Task<ActionResult<LoginResultDTO>> Login(LoginDTO login)
         {
-            var result = await SignInManager.PasswordSignInAsync(login.Username, login.Password, true, lockoutOnFailure: false);
+            var result = await SignInManager.PasswordSignInAsync(login.Email, login.Password, true, lockoutOnFailure: false);
             if (result.Succeeded)
             {
-                return Ok();
+                return Ok(new LoginResultDTO() { Email = login.Email });
             }
 
             return NotFound(new { Error = "L'utilisateur est introuvable ou le mot de passe de concorde pas" });
-        }
-
-        [Authorize]
-        [HttpGet]
-        public ActionResult<string[]> Data()
-        {
-            return new string[] { "figue", "banane", "noix" };
         }
 
         public async Task<ActionResult> Logout()
         {
             await SignInManager.SignOutAsync();
             return Ok();
+        }
+
+        [Authorize]
+        [HttpGet]
+        public ActionResult<string[]> Test()
+        {
+            return new string[] { "figue", "banane", "noix" };
         }
     }
 }

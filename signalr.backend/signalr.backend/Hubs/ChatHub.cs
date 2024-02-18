@@ -7,24 +7,16 @@ using signalr.backend.Models;
 
 namespace signalr.backend.Hubs
 {
-    // TODO On garde en mémoire les connexions actives pour facile démarrer des groupes de conversations
-    // TODO n'est pas nécessaire dans le TP
+    // On garde en mémoire les connexions actives
+    // Note: Ce n'est pas nécessaire dans le TP
     public static class UserHandler
     {
         public static Dictionary<string, string> UserConnections { get; set; } = new Dictionary<string, string>();
     }
 
-    // TODO Pour être sauvegardé en BD
-    public class PrivateChat
-    {
-        public int Id { get; set; }
-        public string Name { get; set; } = "";
-        public List<string> Messages { get; set; } = new List<string>();
-    }
-
-    // TODO L'annotation Authorize fonctionne de la même façon avec SignalR qu'avec Web API
+    // L'annotation Authorize fonctionne de la même façon avec SignalR qu'avec Web API
     [Authorize]
-    // TODO Le Hub est le type de base des "contrôleurs" de web sockets
+    // Le Hub est le type de base des "contrôleurs" de web sockets
     public class ChatHub : Hub
     {
         public ApplicationDbContext _context;
@@ -49,11 +41,24 @@ namespace signalr.backend.Hubs
             _context = context;
         }
 
-        public async Task JoinChatRoom()
+        public async override Task OnConnectedAsync()
+        {
+            await JoinChat();
+        }
+
+        public async override Task OnDisconnectedAsync(Exception? exception)
+        {
+            // TODO Lors de la fermeture de la connexion, on met à jour notre dictionnary d'utilisateurs connectés
+            KeyValuePair<string, string> entrie = UserHandler.UserConnections.SingleOrDefault(uc => uc.Value == Context.UserIdentifier);
+            UserHandler.UserConnections.Remove(entrie.Key);
+            await UserList();
+        }
+
+        private async Task JoinChat()
         {
             // TODO Context.ConnectionId est l'identifiant de la connection entre le web socket et l'utilisateur
             // TODO Ce sera utile pour créer des groups
-            UserHandler.UserConnections.Add(CurentUser.Email!, Context.ConnectionId);
+            UserHandler.UserConnections.Add(CurentUser.Email!, Context.UserIdentifier);
             await UserList();
             await Clients.Caller.SendAsync("ChannelsList", _context.Channel.ToList());
         }
@@ -66,34 +71,48 @@ namespace signalr.backend.Hubs
             await Clients.Caller.SendAsync("ChannelsList", await _context.Channel.ToListAsync());
         }
 
+        public async Task DeleteChannel(int channelId)
+        {
+            Channel channel = _context.Channel.Find(channelId);
+
+            if(channel != null)
+            {
+                _context.Channel.Remove(channel);
+                await _context.SaveChangesAsync();
+            }
+
+            await Clients.Group(CreateChannelGroupName(channelId)).SendAsync("LeaveChannel");
+            await Clients.Caller.SendAsync("ChannelsList", await _context.Channel.ToListAsync());
+        }
+
         public async Task UserList()
         {
             // TODO On envoie un évènement de type UserList à tous les Utilisateurs
             // TODO On peut envoyer en paramètre tous les types que l'om veut,
             // ici serHandler.UserConnections.Keys correspond à la liste de tous les emails des utilisateurs connectés
-            await Clients.All.SendAsync("UsersList", UserHandler.UserConnections.Keys);
+            await Clients.All.SendAsync("UsersList", UserHandler.UserConnections.ToList());
         }
 
         public async Task JoinChannel(int oldChannelId, int newChannelId)
         {
-            string userTag = "[User: " + CurentUser.Email! + "]";
+            string userTag = "[" + CurentUser.Email! + "]";
 
             if(oldChannelId > 0)
             {
-                string oldGroupName = "Channel" + oldChannelId;
+                string oldGroupName = CreateChannelGroupName(oldChannelId);
                 Channel channel = _context.Channel.Find(oldChannelId);
-                string message = userTag + "is leaving: " + channel.Title;
+                string message = userTag + " quitte: " + channel.Title;
                 await Clients.Group(oldGroupName).SendAsync("NewMessage", message);
                 await Groups.RemoveFromGroupAsync(Context.ConnectionId, oldGroupName);
             }
             
             if(newChannelId > 0)
             {
-                string newGroupName = "Channel" + newChannelId;
+                string newGroupName = CreateChannelGroupName(newChannelId);
                 await Groups.AddToGroupAsync(Context.ConnectionId, newGroupName);
 
                 Channel channel = _context.Channel.Find(newChannelId);
-                string message = userTag + "has joined: " + channel.Title;
+                string message = userTag + " a rejoint : " + channel.Title;
                 await Clients.Group(newGroupName).SendAsync("NewMessage", message);
             }
         }
@@ -102,26 +121,26 @@ namespace signalr.backend.Hubs
         {
             if (userId != null)
             {
-                string messageWithTag = "[From User: " + CurentUser.Email! + "] " + message;
+                string messageWithTag = "[De: " + CurentUser.Email! + "] " + message;
                 await Clients.User(userId).SendAsync("NewMessage", messageWithTag);
             }
             else if (channelId != 0)
             {
-                string groupName = "Channel" + channelId;
-                await Clients.Group(groupName).SendAsync("NewMessage", "[Channel] " + message);
+                string groupName = CreateChannelGroupName(channelId);
+                Channel channel = _context.Channel.Find(channelId);
+                await Clients.Group(groupName).SendAsync("NewMessage", "[" + channel.Title + "] " + message);
             }
             else
             {
-                await Clients.All.SendAsync("NewMessage", "[General] " + message);
+                await Clients.All.SendAsync("NewMessage", "[Tous] " + message);
             }
         }
 
-        public async override Task OnDisconnectedAsync(Exception exception)
+        private static string CreateChannelGroupName(int channelId)
         {
-            // TODO Lors de la fermeture de la connexion, on met à jour notre dictionnary d'utilisateurs connectés
-            KeyValuePair<string,string> entrie = UserHandler.UserConnections.SingleOrDefault(uc=>uc.Value == Context.ConnectionId);
-            UserHandler.UserConnections.Remove(entrie.Key);
-            await UserList();
+            return "Channel" + channelId;
         }
+
+        
     }
 }

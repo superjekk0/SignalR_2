@@ -22,7 +22,7 @@ export class ChatComponent  {
   usersList:UserEntry[] = [];
   channelsList:Channel[] = [];
 
-  isConnected: boolean = false;
+  isConnectedToHub: boolean = false;
 
   newChannelName: string = "";
 
@@ -44,7 +44,7 @@ export class ChatComponent  {
     this.hubConnection
       .start()
       .then(() => {
-        this.isConnected = true;
+        this.isConnectedToHub = true;
         // Une fois connectée, on peut commencer à écouter pour les messages que l'on va recevoir du serveur
         this.hubConnection!.on('UsersList', (data) => {
           this.usersList = data;

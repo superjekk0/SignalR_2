@@ -7,7 +7,7 @@ using signalr.backend.Models;
 
 namespace signalr.backend.Hubs
 {
-    // On garde en mémoire les connexions actives
+    // On garde en mémoire les connexions actives (clé: email, valeur: userId)
     // Note: Ce n'est pas nécessaire dans le TP
     public static class UserHandler
     {
@@ -16,24 +16,19 @@ namespace signalr.backend.Hubs
 
     // L'annotation Authorize fonctionne de la même façon avec SignalR qu'avec Web API
     [Authorize]
-    // Le Hub est le type de base des "contrôleurs" de web sockets
+    // Le Hub est le type de base des "contrôleurs" de SignalR
     public class ChatHub : Hub
     {
         public ApplicationDbContext _context;
-
 
         public IdentityUser CurentUser
         {
             get
             {
-                // TODO on récupère le userid à partir du Cookie qui devrait être envoyé automatiquement
+                // On récupère le userid à partir du Cookie qui devrait être envoyé automatiquement
                 string userid = Context.UserIdentifier!;
-
-                var user = _context.Users.Single(u => u.Id == userid);
-
-                return user;
+                return _context.Users.Single(u => u.Id == userid);
             }
-
         }
 
         public ChatHub(ApplicationDbContext context)
@@ -43,24 +38,18 @@ namespace signalr.backend.Hubs
 
         public async override Task OnConnectedAsync()
         {
-            await JoinChat();
+            UserHandler.UserConnections.Add(CurentUser.Email!, Context.UserIdentifier);
+            
+            // TODO: Envoyer des message aux clients pour les mettre à jour
         }
 
         public async override Task OnDisconnectedAsync(Exception? exception)
         {
-            // TODO Lors de la fermeture de la connexion, on met à jour notre dictionnary d'utilisateurs connectés
+            // Lors de la fermeture de la connexion, on met à jour notre dictionnary d'utilisateurs connectés
             KeyValuePair<string, string> entrie = UserHandler.UserConnections.SingleOrDefault(uc => uc.Value == Context.UserIdentifier);
             UserHandler.UserConnections.Remove(entrie.Key);
-            await UserList();
-        }
-
-        private async Task JoinChat()
-        {
-            // TODO Context.ConnectionId est l'identifiant de la connection entre le web socket et l'utilisateur
-            // TODO Ce sera utile pour créer des groups
-            UserHandler.UserConnections.Add(CurentUser.Email!, Context.UserIdentifier);
-            await UserList();
-            await Clients.Caller.SendAsync("ChannelsList", _context.Channel.ToList());
+            
+            // TODO: Envoyer un message aux clients pour les mettre à jour
         }
 
         public async Task CreateChannel(string title)
@@ -68,7 +57,7 @@ namespace signalr.backend.Hubs
             _context.Channel.Add(new Channel { Title = title });
             await _context.SaveChangesAsync();
 
-            await Clients.Caller.SendAsync("ChannelsList", await _context.Channel.ToListAsync());
+            // TODO: Envoyer un message aux clients pour les mettre à jour
         }
 
         public async Task DeleteChannel(int channelId)
@@ -81,55 +70,27 @@ namespace signalr.backend.Hubs
                 await _context.SaveChangesAsync();
             }
             string groupName = CreateChannelGroupName(channelId);
-            await Clients.Group(groupName).SendAsync("NewMessage", "[" + channel.Title + "] a été détruit");
-            await Clients.Group(groupName).SendAsync("LeaveChannel");
-            await Clients.Caller.SendAsync("ChannelsList", await _context.Channel.ToListAsync());
-        }
-
-        public async Task UserList()
-        {
-            // TODO On envoie un évènement de type UserList à tous les Utilisateurs
-            // TODO On peut envoyer en paramètre tous les types que l'om veut,
-            // ici serHandler.UserConnections.Keys correspond à la liste de tous les emails des utilisateurs connectés
-            await Clients.All.SendAsync("UsersList", UserHandler.UserConnections.ToList());
+            // Envoyer les messages nécessaires aux clients
         }
 
         public async Task JoinChannel(int oldChannelId, int newChannelId)
         {
             string userTag = "[" + CurentUser.Email! + "]";
 
-            if(oldChannelId > 0)
-            {
-                string oldGroupName = CreateChannelGroupName(oldChannelId);
-                Channel channel = _context.Channel.Find(oldChannelId);
-                string message = userTag + " quitte: " + channel.Title;
-                await Clients.Group(oldGroupName).SendAsync("NewMessage", message);
-                await Groups.RemoveFromGroupAsync(Context.ConnectionId, oldGroupName);
-            }
-            
-            if(newChannelId > 0)
-            {
-                string newGroupName = CreateChannelGroupName(newChannelId);
-                await Groups.AddToGroupAsync(Context.ConnectionId, newGroupName);
+            // TODO: Faire quitter le vieux canal à l'utilisateur
 
-                Channel channel = _context.Channel.Find(newChannelId);
-                string message = userTag + " a rejoint : " + channel.Title;
-                await Clients.Group(newGroupName).SendAsync("NewMessage", message);
-            }
+            // TODO: Faire joindre le nouveau canal à l'utilisateur
         }
 
         public async Task SendMessage(string message, int channelId, string userId)
         {
             if (userId != null)
             {
-                string messageWithTag = "[De: " + CurentUser.Email! + "] " + message;
-                await Clients.User(userId).SendAsync("NewMessage", messageWithTag);
+                // TODO: Envoyer le message à cet utilisateur
             }
             else if (channelId != 0)
             {
-                string groupName = CreateChannelGroupName(channelId);
-                Channel channel = _context.Channel.Find(channelId);
-                await Clients.Group(groupName).SendAsync("NewMessage", "[" + channel.Title + "] " + message);
+                // TODO: Envoyer le message aux utilisateurs connectés à ce canal
             }
             else
             {
@@ -141,7 +102,5 @@ namespace signalr.backend.Hubs
         {
             return "Channel" + channelId;
         }
-
-        
     }
 }

@@ -16,11 +16,6 @@ import * as signalR from "@microsoft/signalr"
 })
 export class ChatComponent  {
 
-  title = 'SignalR Chat';
-
-  baseUrl = "https://localhost:7060/api/";
-  accountBaseUrl = this.baseUrl + "Account/";
-
   message: string = "test";
   messages: string[] = [];
 
@@ -41,11 +36,11 @@ export class ChatComponent  {
   }
 
   connectToHub() {
-    // TODO On doit commencer par créer la connexion vers le Hub
+    // On commence par créer la connexion vers le Hub
     this.hubConnection = new signalR.HubConnectionBuilder()
                               .withUrl('https://localhost:7060/chat')
                               .build();
-    // TODO On se connecte au Hub
+    // On se connecte au Hub
     this.hubConnection
       .start()
       .then(() => {
@@ -55,23 +50,15 @@ export class ChatComponent  {
           this.usersList = data;
         });
 
-        this.hubConnection!.on('ChannelsList', (data) => {
-          this.channelsList = data;
-        });
+        // TODO: Écouter le message pour mettre à jour la liste de channels
 
         this.hubConnection!.on('NewMessage', (message) => {
           this.messages.push(message);
         });
 
-        this.hubConnection!.on('LeaveChannel', (message) => {
-          this.selectedChannel = null;
-        });
+        // TODO: Écouter le message pour quitter un channel (lorsque le channel est effacé)
       })
       .catch(err => console.log('Error while starting connection: ' + err))
-  }
-
-  startPrivateChat(user: string) {
-    this.hubConnection!.invoke('StartPrivateChat', user)
   }
 
   joinChannel(channel: Channel) {
@@ -92,11 +79,11 @@ export class ChatComponent  {
   }
 
   createChannel(){
-    this.hubConnection!.invoke('CreateChannel', this.newChannelName);
+    // TODO: Ajouter un invoke
   }
 
   deleteChannel(channel: Channel){
-    this.hubConnection!.invoke('DeleteChannel', channel.id);
+    // TODO: Ajouter un invoke
   }
 
   leaveChannel(){

@@ -80,8 +80,9 @@ namespace signalr.backend.Hubs
                 _context.Channel.Remove(channel);
                 await _context.SaveChangesAsync();
             }
-
-            await Clients.Group(CreateChannelGroupName(channelId)).SendAsync("LeaveChannel");
+            string groupName = CreateChannelGroupName(channelId);
+            await Clients.Group(groupName).SendAsync("NewMessage", "[" + channel.Title + "] a été détruit");
+            await Clients.Group(groupName).SendAsync("LeaveChannel");
             await Clients.Caller.SendAsync("ChannelsList", await _context.Channel.ToListAsync());
         }
 

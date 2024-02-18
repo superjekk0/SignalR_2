@@ -95,6 +95,10 @@ export class ChatComponent  {
     this.hubConnection!.invoke('CreateChannel', this.newChannelName);
   }
 
+  deleteChannel(channel: Channel){
+    this.hubConnection!.invoke('DeleteChannel', channel.id);
+  }
+
   leaveChannel(){
     let selectedChannelId = this.selectedChannel ? this.selectedChannel.id : 0;
     this.hubConnection!.invoke('JoinChannel', selectedChannelId, 0);

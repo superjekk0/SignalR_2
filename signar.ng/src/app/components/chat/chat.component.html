@@ -5,7 +5,7 @@
     </div>
     <div *ngIf="isConnected">
       <div style="display: flex;">
-        <div style="background-color: #f3ea0c; width: 20%; padding: 8px">
+        <div style="background-color: #f3ea0c; width: 25%; padding: 8px">
           <h2>Utilisateurs connectés</h2>
           <mat-radio-group aria-labelledby="radio-group-label" [(ngModel)]="selectedUser">
             <ul style="list-style-type:none; padding-left: 8px;">
@@ -16,7 +16,7 @@
           </mat-radio-group>
         </div>
 
-        <div style="background-color: azure; width: 20%; padding: 8px">
+        <div style="background-color: azure; width: 25%; padding: 8px">
           <h2>Canaux <button [disabled]="selectedChannel == null" mat-raised-button color="warn" (click)="leaveChannel()" style="margin: 4px">Quitter le canal</button></h2>
           <form (submit)="createChannel()">
             <input type="text" [(ngModel)]="newChannelName" name="newChannelName">
@@ -25,11 +25,12 @@
           <ul style="list-style-type:none; padding-left: 8px;">
             <li *ngFor="let channel of channelsList">
               <button mat-raised-button color="primary" (click)="joinChannel(channel)" style="margin: 4px">Rejoindre {{channel.title}}</button>
+              <button mat-raised-button color="warn" (click)="deleteChannel(channel)" style="margin: 4px">X</button>
             </li>
           </ul>
         </div>
 
-        <div style="background-color: cadetblue; width: 60%; padding: 8px">
+        <div style="background-color: cadetblue; width: 50%; padding: 8px">
           <h2>Conversation</h2>
           <p>Envoyer un message à : <b>{{selectedUser ? selectedUser.key : selectedChannel ? selectedChannel.title : "Tous"}}</b></p>
           <form (submit)="sendMessage()">

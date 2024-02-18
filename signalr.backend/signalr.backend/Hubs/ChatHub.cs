@@ -59,6 +59,7 @@ namespace signalr.backend.Hubs
             // TODO Context.ConnectionId est l'identifiant de la connection entre le web socket et l'utilisateur
             // TODO Ce sera utile pour créer des groups
             UserHandler.UserConnections.Add(CurentUser.Email!, Context.UserIdentifier);
+            
             await UserList();
             await Clients.Caller.SendAsync("ChannelsList", _context.Channel.ToList());
         }
@@ -68,7 +69,7 @@ namespace signalr.backend.Hubs
             _context.Channel.Add(new Channel { Title = title });
             await _context.SaveChangesAsync();
 
-            await Clients.Caller.SendAsync("ChannelsList", await _context.Channel.ToListAsync());
+            await Clients.All.SendAsync("ChannelsList", await _context.Channel.ToListAsync());
         }
 
         public async Task DeleteChannel(int channelId)
@@ -83,7 +84,7 @@ namespace signalr.backend.Hubs
             string groupName = CreateChannelGroupName(channelId);
             await Clients.Group(groupName).SendAsync("NewMessage", "[" + channel.Title + "] a été détruit");
             await Clients.Group(groupName).SendAsync("LeaveChannel");
-            await Clients.Caller.SendAsync("ChannelsList", await _context.Channel.ToListAsync());
+            await Clients.All.SendAsync("ChannelsList", await _context.Channel.ToListAsync());
         }
 
         public async Task UserList()

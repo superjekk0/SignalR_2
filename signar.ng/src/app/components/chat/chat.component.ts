@@ -45,27 +45,29 @@ export class ChatComponent  {
     this.hubConnection = new signalR.HubConnectionBuilder()
                               .withUrl('https://localhost:7060/chat')
                               .build();
-    // TODO On se connecte au Hub
+
+    // On peut commencer à écouter pour les messages que l'on va recevoir du serveur
+    this.hubConnection.on('UsersList', (data) => {
+      this.usersList = data;
+    });
+
+    this.hubConnection.on('ChannelsList', (data) => {
+      this.channelsList = data;
+    });
+
+    this.hubConnection.on('NewMessage', (message) => {
+      this.messages.push(message);
+    });
+
+    this.hubConnection.on('LeaveChannel', (message) => {
+      this.selectedChannel = null;
+    });
+
+    // On se connecte au Hub
     this.hubConnection
       .start()
       .then(() => {
         this.isConnected = true;
-        // Une fois connectée, on peut commencer à écouter pour les messages que l'on va recevoir du serveur
-        this.hubConnection!.on('UsersList', (data) => {
-          this.usersList = data;
-        });
-
-        this.hubConnection!.on('ChannelsList', (data) => {
-          this.channelsList = data;
-        });
-
-        this.hubConnection!.on('NewMessage', (message) => {
-          this.messages.push(message);
-        });
-
-        this.hubConnection!.on('LeaveChannel', (message) => {
-          this.selectedChannel = null;
-        });
       })
       .catch(err => console.log('Error while starting connection: ' + err))
   }

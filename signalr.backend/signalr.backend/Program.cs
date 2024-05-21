@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using signalr.backend.Data;
 using signalr.backend.Hubs;
+using signalr.backend.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -33,8 +34,10 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.Cookie.SameSite = SameSiteMode.None;
 });
 
-// TODO Ajouter SignalR
 builder.Services.AddSignalR();
+
+builder.Services.AddSingleton<ChatBackgroundService>();
+builder.Services.AddHostedService<ChatBackgroundService>(p => p.GetService<ChatBackgroundService>());
 
 var app = builder.Build();
 

@@ -63,6 +63,10 @@ export class ChatComponent  {
       this.selectedChannel = null;
     });
 
+    this.hubConnection.on('MostPopularChannel', (messagesCount) => {
+      alert(`Vous êtes dans le canal le plus populaire avec ${messagesCount} messages`);
+    });
+
     // On se connecte au Hub
     this.hubConnection
       .start()

@@ -10,7 +10,7 @@ const LOCAL_STORAGE_EMAIL_KEY = "email";
 })
 export class AuthenticationService {
 
-  baseUrl = "https://localhost:7060/api/";
+  baseUrl = "http://localhost:5106/api/";
   accountBaseUrl = this.baseUrl + "Account/";
 
   authenticatedUserEmail: string | null = null;
@@ -21,17 +21,18 @@ export class AuthenticationService {
 
   async registerAndLogin(registerData: RegisterDTO): Promise<void> {
     let result = await lastValueFrom(this.http.post<LoginResultDTO>(this.accountBaseUrl + 'Register', registerData));
+    sessionStorage.setItem("token", result.token);
     this.setUserEmail(result.email);
   }
 
   async login(loginData: LoginDTO): Promise<void> {
     let result = await lastValueFrom(this.http.post<LoginResultDTO>(this.accountBaseUrl + 'Login', loginData));
-    localStorage.setItem("token", result.token);
+    sessionStorage.setItem("token", result.token);
     this.setUserEmail(result.email);
   }
 
   async logout(): Promise<void> {
-    localStorage.removeItem("token");
+    sessionStorage.removeItem("token");
     this.setUserEmail(null);
   }
 

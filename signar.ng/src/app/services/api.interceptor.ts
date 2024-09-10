@@ -10,10 +10,19 @@ import { Observable } from 'rxjs';
 @Injectable()
 export class ApiInterceptor implements HttpInterceptor {
 
-  constructor() {}
+  constructor() { }
 
   intercept(request: HttpRequest<unknown>, next: HttpHandler): Observable<HttpEvent<unknown>> {
-    request = request.clone({ withCredentials: true });
+    let token = sessionStorage.getItem('token');
+
+    if (token != null) {
+      request = request.clone({
+        setHeaders: {
+          'Authorization': 'Bearer ' + token
+        }
+      });
+    }
+
     return next.handle(request);
   }
 }

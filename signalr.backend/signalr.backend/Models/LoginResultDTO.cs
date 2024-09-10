@@ -4,6 +4,7 @@ namespace signalr.backend.Models
 {
     public class LoginResultDTO
     {
-        public String Email { get; set; }
+        public string Email { get; set; }
+        public string Token { get; set; }
     }
 }

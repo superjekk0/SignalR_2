@@ -57,10 +57,12 @@ namespace signalr.backend.Hubs
 
         public async Task CreateChannel(string title)
         {
-            _context.Channel.Add(new Channel { Title = title });
+            Channel channel = new Channel { Title = title };
+            _context.Channel.Add(channel);
             await _context.SaveChangesAsync();
 
             // TODO: Envoyer un message aux clients pour les mettre à jour
+            await Clients.All.SendAsync("NewChannel", channel);
         }
 
         public async Task DeleteChannel(int channelId)
@@ -74,6 +76,7 @@ namespace signalr.backend.Hubs
             }
             string groupName = CreateChannelGroupName(channelId);
             // Envoyer les messages nécessaires aux clients
+            await Clients.All.SendAsync("DeleteChannel", channelId);
         }
 
         public async Task JoinChannel(int oldChannelId, int newChannelId)

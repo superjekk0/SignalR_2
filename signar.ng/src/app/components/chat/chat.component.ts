@@ -14,32 +14,32 @@ import * as signalR from "@microsoft/signalr"
   templateUrl: './chat.component.html',
   styleUrls: ['./chat.component.css']
 })
-export class ChatComponent  {
+export class ChatComponent {
 
   message: string = "test";
   messages: string[] = [];
 
-  usersList:UserEntry[] = [];
-  channelsList:Channel[] = [];
+  usersList: UserEntry[] = [];
+  channelsList: Channel[] = [];
 
   isConnectedToHub: boolean = false;
 
   newChannelName: string = "";
 
-  selectedChannel:Channel | null = null;
-  selectedUser:UserEntry | null = null;
+  selectedChannel: Channel | null = null;
+  selectedUser: UserEntry | null = null;
 
   private hubConnection?: signalR.HubConnection
 
-  constructor(public http: HttpClient, public authentication:AuthenticationService){
+  constructor(public http: HttpClient, public authentication: AuthenticationService) {
 
   }
 
   connectToHub() {
     // On commence par créer la connexion vers le Hub
     this.hubConnection = new signalR.HubConnectionBuilder()
-                              .withUrl('https://localhost:7060/chat', { accessTokenFactory: () => sessionStorage.getItem("token")!/*, skipNegotiation: true, transport: signalR.HttpTransportType.WebSockets*/ })
-                              .build();
+      .withUrl('https://localhost:7060/chat', { accessTokenFactory: () => sessionStorage.getItem("token")!/*, skipNegotiation: true, transport: signalR.HttpTransportType.WebSockets*/ })
+      .build();
 
     // On peut commencer à écouter pour les messages que l'on va recevoir du serveur
     this.hubConnection.on('UsersList', (data) => {
@@ -48,8 +48,16 @@ export class ChatComponent  {
 
     // TODO: Écouter le message pour mettre à jour la liste de channels
 
-    this.hubConnection.on("NewChannel", (data) =>{
-      this.messages.push("[Tous] " + data);
+    this.hubConnection.on("NewChannel", (data: Channel) => {
+      this.channelsList.push(data);
+      this.messages.push(`[Tous] Le canal ${data.title} a été créé`);
+    });
+
+    this.hubConnection.on("DeleteChannel", (id: number) => {
+      let channelIndex: number = this.channelsList.findIndex(c => c.id == id);
+      let canal = this.channelsList[channelIndex];
+      this.channelsList.splice(channelIndex, 1);
+      this.messages.push(`[Tous] Le canal ${canal.title} a été supprimé`)
     })
 
     this.hubConnection.on('NewMessage', (message) => {
@@ -78,21 +86,22 @@ export class ChatComponent  {
     this.hubConnection!.invoke('SendMessage', this.message, selectedChannelId, this.selectedUser?.value);
   }
 
-  userClick(user:UserEntry) {
-    if(user == this.selectedUser){
+  userClick(user: UserEntry) {
+    if (user == this.selectedUser) {
       this.selectedUser = null;
     }
   }
 
-  createChannel(){
-    // TODO: Ajouter un invoke
+  createChannel() {
+    this.hubConnection!.invoke("CreateChannel", this.newChannelName);
   }
 
-  deleteChannel(channel: Channel){
+  deleteChannel(channel: Channel) {
     // TODO: Ajouter un invoke
+    this.hubConnection?.invoke("DeleteChannel", channel.id);
   }
 
-  leaveChannel(){
+  leaveChannel() {
     let selectedChannelId = this.selectedChannel ? this.selectedChannel.id : 0;
     this.hubConnection!.invoke('JoinChannel', selectedChannelId, 0);
     this.selectedChannel = null;

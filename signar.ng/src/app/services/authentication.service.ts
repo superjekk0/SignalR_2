@@ -10,13 +10,14 @@ const LOCAL_STORAGE_EMAIL_KEY = "email";
 })
 export class AuthenticationService {
 
-  baseUrl = "http://localhost:5106/api/";
+  //readonly baseUrl = "http://localhost:5106/api/";
+  readonly baseUrl = "https://localhost:7060/api/";
   accountBaseUrl = this.baseUrl + "Account/";
 
   authenticatedUserEmail: string | null = null;
 
   constructor(public http: HttpClient) {
-    this.authenticatedUserEmail = localStorage.getItem(LOCAL_STORAGE_EMAIL_KEY);
+    this.authenticatedUserEmail = sessionStorage.getItem(LOCAL_STORAGE_EMAIL_KEY);
   }
 
   async registerAndLogin(registerData: RegisterDTO): Promise<void> {
